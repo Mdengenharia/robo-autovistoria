@@ -18,8 +18,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests
-          pip install beautifulsoup4
+          pip install playwright
+          playwright install
 
       - name: Run script
         run: python robo.py
