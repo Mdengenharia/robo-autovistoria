@@ -1,119 +1,63 @@
-import requests
-from bs4 import BeautifulSoup
-import pdfplumber
+from playwright.sync_api import sync_playwright
 
-# 🔗 FONTES (pode expandir depois)
-urls = [
-    "https://www.ioerj.com.br/portal/",
-    "https://diariooficial.niteroi.rj.gov.br/"
-]
+def run():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
 
-headers = {
-    "User-Agent": "Mozilla/5.0"
-}
+        url = "https://doweb.rio.rj.gov.br/buscanova/#/p=1&q=predial"
 
-# 🧠 PALAVRAS-CHAVE (CÉREBRO DO ROBÔ)
-palavras_condominio = [
-    "condominio", "condomínio", "edificio", "edifício"
-]
+        page.goto(url)
 
-palavras_problema = [
-    "predial",
-    "manutenção", "manutencao",
-    "fiscalização", "fiscalizacao",
-    "vistoria", "autovistoria",
-    "inspeção", "inspecao",
-    "laudo",
-    "exigência", "exigencia",
-    "regularização", "regularizacao",
-    "marquise"
-]
+        page.wait_for_timeout(6000)
 
-clientes = []
+        texto = page.inner_text("body")
 
-for url in urls:
+        linhas = texto.split("\n")
 
-    print(f"\n🔎 Buscando em: {url}\n")
+        resultados = []
 
-    try:
-        response = requests.get(url, headers=headers, timeout=15)
-    except:
-        continue
+        for i, linha in enumerate(linhas):
+            linha_lower = linha.lower()
 
-    soup = BeautifulSoup(response.text, "html.parser")
-    links = soup.find_all("a")
+            if (
+                ("condominio" in linha_lower or "condomínio" in linha_lower or "edificio" in linha_lower or "edifício" in linha_lower)
+                and
+                (
+                    "predial" in linha_lower
+                    or "manutenção" in linha_lower
+                    or "fiscalização" in linha_lower
+                    or "fiscalizacao" in linha_lower
+                    or "laudo" in linha_lower
+                    or "vistoria" in linha_lower
+                    or "autovistoria" in linha_lower
+                    or "inspeção" in linha_lower
+                    or "inspecao" in linha_lower
+                    or "exigência" in linha_lower
+                    or "exigencia" in linha_lower
+                    or "marquise" in linha_lower
+                )
+            ):
+                contexto = linha.strip()
 
-    pdf_link = None
+                if i > 0:
+                    contexto = linhas[i-1].strip() + " | " + contexto
 
-    # 🔍 acha PDF
-    for link in links:
-        href = link.get("href")
+                if i < len(linhas) - 1:
+                    contexto = contexto + " | " + linhas[i+1].strip()
 
-        if href and ".pdf" in href.lower():
-            if href.startswith("/"):
-                base = url.split("/")[0] + "//" + url.split("/")[2]
-                pdf_link = base + href
-            else:
-                pdf_link = href
-            break
+                resultados.append(contexto)
 
-    if not pdf_link:
-        continue
+        print("\n==============================")
+        print("🔥 RESULTADOS ENCONTRADOS")
+        print("==============================\n")
 
-    print("📄 PDF:", pdf_link)
+        for r in resultados:
+            print(r)
 
-    try:
-        pdf = requests.get(pdf_link, headers=headers, timeout=15)
+        if not resultados:
+            print("Nenhum resultado encontrado")
 
-        with open("arquivo.pdf", "wb") as f:
-            f.write(pdf.content)
+        browser.close()
 
-    except:
-        continue
-
-    try:
-        with pdfplumber.open("arquivo.pdf") as pdf_file:
-
-            for pagina in pdf_file.pages:
-                texto = pagina.extract_text()
-
-                if not texto:
-                    continue
-
-                linhas = texto.split("\n")
-
-                for i, linha in enumerate(linhas):
-
-                    linha_lower = linha.lower()
-
-                    # 🎯 REGRA INTELIGENTE
-                    if any(p in linha_lower for p in palavras_condominio):
-
-                        if any(p in linha_lower for p in palavras_problema):
-
-                            contexto = linha.strip()
-
-                            # linha antes
-                            if i > 0:
-                                contexto = linhas[i-1].strip() + " | " + contexto
-
-                            # linha depois
-                            if i < len(linhas) - 1:
-                                contexto = contexto + " | " + linhas[i+1].strip()
-
-                            clientes.append(contexto)
-
-    except:
-        continue
-
-# 📊 RESULTADO
-
-print("\n==============================")
-print("🔥 CLIENTES ENCONTRADOS")
-print("==============================\n")
-
-for c in clientes:
-    print(c)
-
-if not clientes:
-    print("Nenhuma oportunidade encontrada hoje")
+run()
