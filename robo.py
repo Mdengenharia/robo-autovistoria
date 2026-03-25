@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import pdfplumber
 
-# 🔗 FONTES
+# 🔗 FONTES (pode expandir depois)
 urls = [
     "https://www.ioerj.com.br/portal/",
     "https://diariooficial.niteroi.rj.gov.br/"
@@ -12,6 +12,23 @@ headers = {
     "User-Agent": "Mozilla/5.0"
 }
 
+# 🧠 PALAVRAS-CHAVE (CÉREBRO DO ROBÔ)
+palavras_condominio = [
+    "condominio", "condomínio", "edificio", "edifício"
+]
+
+palavras_problema = [
+    "predial",
+    "manutenção", "manutencao",
+    "fiscalização", "fiscalizacao",
+    "vistoria", "autovistoria",
+    "inspeção", "inspecao",
+    "laudo",
+    "exigência", "exigencia",
+    "regularização", "regularizacao",
+    "marquise"
+]
+
 clientes = []
 
 for url in urls:
@@ -20,8 +37,7 @@ for url in urls:
 
     try:
         response = requests.get(url, headers=headers, timeout=15)
-    except Exception as e:
-        print("Erro ao acessar:", e)
+    except:
         continue
 
     soup = BeautifulSoup(response.text, "html.parser")
@@ -29,7 +45,7 @@ for url in urls:
 
     pdf_link = None
 
-    # 🔍 acha PDF do dia
+    # 🔍 acha PDF
     for link in links:
         href = link.get("href")
 
@@ -42,27 +58,19 @@ for url in urls:
             break
 
     if not pdf_link:
-        print("Nenhum PDF encontrado")
         continue
 
-    print("📄 PDF encontrado:", pdf_link)
+    print("📄 PDF:", pdf_link)
 
-    # ⬇️ baixa PDF
     try:
         pdf = requests.get(pdf_link, headers=headers, timeout=15)
-
-        if pdf.status_code != 200:
-            print("Erro ao baixar PDF")
-            continue
 
         with open("arquivo.pdf", "wb") as f:
             f.write(pdf.content)
 
-    except Exception as e:
-        print("Erro no download:", e)
+    except:
         continue
 
-    # 📖 leitura inteligente
     try:
         with pdfplumber.open("arquivo.pdf") as pdf_file:
 
@@ -78,45 +86,27 @@ for url in urls:
 
                     linha_lower = linha.lower()
 
-                    # 🎯 FILTRO INTELIGENTE (BASE REAL DO DIÁRIO)
-                    if (
-                        ("condominio" in linha_lower or "condomínio" in linha_lower or "edificio" in linha_lower or "edifício" in linha_lower)
-                        and
-                        (
-                            "predial" in linha_lower
-                            or "manutenção" in linha_lower
-                            or "fiscalização" in linha_lower
-                            or "fiscalizacao" in linha_lower
-                            or "subgerência" in linha_lower
-                            or "subgerencia" in linha_lower
-                            or "vistoria" in linha_lower
-                            or "autovistoria" in linha_lower
-                            or "inspeção" in linha_lower
-                            or "inspecao" in linha_lower
-                            or "laudo" in linha_lower
-                            or "exigência" in linha_lower
-                            or "exigencia" in linha_lower
-                            or "marquise" in linha_lower
-                        )
-                    ):
+                    # 🎯 REGRA INTELIGENTE
+                    if any(p in linha_lower for p in palavras_condominio):
 
-                        contexto = linha.strip()
+                        if any(p in linha_lower for p in palavras_problema):
 
-                        # ⬆️ linha anterior
-                        if i > 0:
-                            contexto = linhas[i-1].strip() + " | " + contexto
+                            contexto = linha.strip()
 
-                        # ⬇️ linha seguinte
-                        if i < len(linhas) - 1:
-                            contexto = contexto + " | " + linhas[i+1].strip()
+                            # linha antes
+                            if i > 0:
+                                contexto = linhas[i-1].strip() + " | " + contexto
 
-                        clientes.append(contexto)
+                            # linha depois
+                            if i < len(linhas) - 1:
+                                contexto = contexto + " | " + linhas[i+1].strip()
 
-    except Exception as e:
-        print("Erro lendo PDF:", e)
+                            clientes.append(contexto)
+
+    except:
         continue
 
-# 📊 RESULTADO FINAL
+# 📊 RESULTADO
 
 print("\n==============================")
 print("🔥 CLIENTES ENCONTRADOS")
