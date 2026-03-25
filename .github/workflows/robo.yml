@@ -1,24 +1,28 @@
 name: Robo Autovistoria
-
 on:
   workflow_dispatch:
   schedule:
-   - cron: "0 12 * * *"
+    - cron: "0 12 * * *"
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install libraries
-        run: pip install requests pdfplumber pandas beautifulsoup4
+        run: |
+          pip install requests
+          pip install pdfplumber
+          pip install pandas
+          pip install beautifulsoup4
 
       - name: Run script
         run: python robo.py
