@@ -16,7 +16,7 @@ for link in soup.find_all("a"):
         pdf_link = href
         break
 
-if pdf_link and
+if pdf_link and pdf_link.startswith("/"):
     pdf_link = "https://doweb.rio.rj.gov.br" + pdf_link
 
 pdf = requests.get(pdf_link)
