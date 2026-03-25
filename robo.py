@@ -5,20 +5,32 @@ def run():
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
 
-        url = "https://doweb.rio.rj.gov.br/buscanova/#/p=1&q=predial"
+        page.goto("https://doweb.rio.rj.gov.br/")
+        page.wait_for_timeout(6000)
 
-        page.goto(url)
+        # 🔥 pega TODOS os links da página
+        links = page.eval_on_selector_all("a", "elements => elements.map(el => el.href)")
 
-        # 🔥 espera carregar melhor
-        page.wait_for_timeout(8000)
+        html_link = None
 
-        # 🔥 pega TODO o HTML renderizado
-        html = page.content()
+        # 🔍 encontra automaticamente link HTML do diário
+        for link in links:
+            if link and ("html" in link.lower()):
+                html_link = link
+                break
 
-        # 🔥 transforma em texto bruto
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(html, "html.parser")
-        texto = soup.get_text()
+        if not html_link:
+            print("❌ Não encontrou link HTML automaticamente")
+            browser.close()
+            return
+
+        print("🔗 HTML encontrado:", html_link)
+
+        # 🔥 abre o HTML direto
+        page.goto(html_link)
+        page.wait_for_timeout(6000)
+
+        texto = page.inner_text("body")
 
         linhas = texto.split("\n")
 
@@ -54,14 +66,14 @@ def run():
                 resultados.append(contexto)
 
         print("\n==============================")
-        print("🔥 RESULTADOS ENCONTRADOS")
+        print("🔥 CLIENTES ENCONTRADOS")
         print("==============================\n")
 
         for r in resultados:
             print(r)
 
         if not resultados:
-            print("⚠️ Página carregou, mas nenhum padrão foi encontrado")
+            print("⚠️ HTML carregado, mas nenhum padrão encontrado")
 
         browser.close()
 
