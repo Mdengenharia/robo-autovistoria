@@ -1,45 +1,45 @@
 import requests
-import pdfplumber
-import pandas as pd
 from bs4 import BeautifulSoup
 
-url = "https://doweb.rio.rj.gov.br/"
+# URL do Diário Oficial (exemplo – depois ajustamos melhor)
+url = "https://www.ioerj.com.br/portal/"
 
-page = requests.get(url)
-soup = BeautifulSoup(page.text, "html.parser")
+response = requests.get(url)
+
+if response.status_code != 200:
+    print("Erro ao acessar o site")
+    exit()
+
+soup = BeautifulSoup(response.text, "html.parser")
+
+# Procurar links de PDF (ajustável depois)
+links = soup.find_all("a")
 
 pdf_link = None
 
-for link in soup.find_all("a"):
+for link in links:
     href = link.get("href")
+    
     if href and ".pdf" in href:
         pdf_link = href
         break
 
-if pdf_link and pdf_link.startswith("/"):
-    pdf_link = "https://doweb.rio.rj.gov.br" + pdf_link
-
+# 🔥 BLOCO SEGURO (ESSENCIAL)
 if pdf_link and pdf_link.startswith("http"):
-    pdf = requests.get(pdf_link)
+    print("PDF encontrado:", pdf_link)
+
+    try:
+        pdf = requests.get(pdf_link)
+
+        if pdf.status_code == 200:
+            with open("arquivo.pdf", "wb") as f:
+                f.write(pdf.content)
+            print("PDF salvo com sucesso")
+        else:
+            print("Erro ao baixar PDF")
+
+    except Exception as e:
+        print("Erro no download:", e)
+
 else:
-    print("Link inválido ou inexistente")
-
-with open("diario.pdf","wb") as f:
-    f.write(pdf.content)
-
-enderecos = []
-
-with pdfplumber.open("diario.pdf") as pdf:
-    for page in pdf.pages:
-        text = page.extract_text()
-
-        if text and "Subgerência de Fiscalização de Manutenção Predial" in text:
-            linhas = text.split("\n")
-
-            for linha in linhas:
-                if "Rua" in linha or "Av." in linha or "Avenida" in linha:
-                    enderecos.append(linha)
-
-df = pd.DataFrame(enderecos, columns=["Endereço"])
-
-df.to_csv("notificacoes.csv", index=False)
+    print("Nenhum link válido encontrado")
