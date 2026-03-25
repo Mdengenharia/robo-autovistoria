@@ -1,69 +1,61 @@
-import requests
-from datetime import datetime
-from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
-# 📅 data de hoje
-hoje = datetime.now().strftime("%Y%m%d")
+def run():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
 
-# 🔗 URL direta (padrão do site)
-url = f"https://doweb.rio.rj.gov.br/portal/edicoes/download/{hoje}"
+        print("🔎 Acessando busca...")
+        page.goto("https://doweb.rio.rj.gov.br/buscanova/#/")
+        page.wait_for_timeout(5000)
 
-headers = {
-    "User-Agent": "Mozilla/5.0"
-}
+        print("🔎 Pesquisando...")
+        page.fill("input", "predial")
+        page.keyboard.press("Enter")
 
-try:
-    response = requests.get(url, headers=headers, timeout=15)
+        page.wait_for_timeout(6000)
 
-    if response.status_code != 200:
-        print("❌ Não conseguiu acessar edição direta")
-        exit()
+        print("🔎 Pegando resultados...")
+        botoes = page.query_selector_all("text=Visualizar")
 
-except Exception as e:
-    print("Erro:", e)
-    exit()
+        resultados = []
 
-# 🔥 LÊ HTML MESMO (mesmo que venha “disfarçado”)
-soup = BeautifulSoup(response.text, "html.parser")
+        for i, botao in enumerate(botoes[:5]):  # pega só os primeiros pra garantir
+            try:
+                print(f"➡️ Abrindo resultado {i+1}")
 
-texto = soup.get_text()
+                with page.expect_navigation():
+                    botao.click()
 
-linhas = texto.split("\n")
+                page.wait_for_timeout(4000)
 
-resultados = []
+                texto = page.inner_text("body")
 
-for i, linha in enumerate(linhas):
-    linha_lower = linha.lower()
+                if (
+                    "condominio" in texto.lower()
+                    or "condomínio" in texto.lower()
+                    or "edificio" in texto.lower()
+                ):
+                    resultados.append(texto[:1000])  # corta pra não ficar gigante
 
-    if (
-        ("condominio" in linha_lower or "condomínio" in linha_lower or "edificio" in linha_lower)
-        and
-        (
-            "predial" in linha_lower
-            or "manutenção" in linha_lower
-            or "fiscalização" in linha_lower
-            or "laudo" in linha_lower
-            or "vistoria" in linha_lower
-            or "exigência" in linha_lower
-            or "marquise" in linha_lower
-        )
-    ):
-        contexto = linha.strip()
+                page.go_back()
+                page.wait_for_timeout(4000)
 
-        if i > 0:
-            contexto = linhas[i-1].strip() + " | " + contexto
+            except:
+                print("⚠️ erro ao abrir resultado, pulando...")
+                continue
 
-        if i < len(linhas) - 1:
-            contexto = contexto + " | " + linhas[i+1].strip()
+        print("\n==============================")
+        print("🔥 RESULTADOS REAIS")
+        print("==============================\n")
 
-        resultados.append(contexto)
+        for r in resultados:
+            print(r)
+            print("\n-------------------\n")
 
-print("\n==============================")
-print("🔥 RESULTADOS REAIS DO DIÁRIO")
-print("==============================\n")
+        if not resultados:
+            print("⚠️ Entrou nas páginas, mas não filtrou ainda")
 
-for r in resultados:
-    print(r)
+        browser.close()
 
-if not resultados:
-    print("⚠️ Conteúdo carregado, mas filtro não capturou — ajustar palavras")
+run()
