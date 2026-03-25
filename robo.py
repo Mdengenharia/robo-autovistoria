@@ -9,9 +9,16 @@ def run():
 
         page.goto(url)
 
-        page.wait_for_timeout(6000)
+        # 🔥 espera carregar melhor
+        page.wait_for_timeout(8000)
 
-        texto = page.inner_text("body")
+        # 🔥 pega TODO o HTML renderizado
+        html = page.content()
+
+        # 🔥 transforma em texto bruto
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html, "html.parser")
+        texto = soup.get_text()
 
         linhas = texto.split("\n")
 
@@ -32,9 +39,7 @@ def run():
                     or "vistoria" in linha_lower
                     or "autovistoria" in linha_lower
                     or "inspeção" in linha_lower
-                    or "inspecao" in linha_lower
                     or "exigência" in linha_lower
-                    or "exigencia" in linha_lower
                     or "marquise" in linha_lower
                 )
             ):
@@ -56,7 +61,7 @@ def run():
             print(r)
 
         if not resultados:
-            print("Nenhum resultado encontrado")
+            print("⚠️ Página carregou, mas nenhum padrão foi encontrado")
 
         browser.close()
 
