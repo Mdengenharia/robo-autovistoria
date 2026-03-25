@@ -12,22 +12,6 @@ headers = {
     "User-Agent": "Mozilla/5.0"
 }
 
-# 🧠 PALAVRAS INTELIGENTES
-palavras_autovistoria = [
-    "autovistoria",
-    "inspeção predial",
-    "inspecao predial",
-    "manutenção predial",
-    "laudo técnico",
-    "laudo tecnico"
-]
-
-palavras_marquise = [
-    "marquise",
-    "vistoria estrutural",
-    "estabilidade"
-]
-
 clientes_autovistoria = []
 clientes_marquise = []
 
@@ -83,7 +67,7 @@ for url in urls:
         print("Erro no download:", e)
         continue
 
-    # 🔍 LEITURA DO PDF
+    # 🔍 LEITURA INTELIGENTE (VERSÃO QUE FUNCIONA DE VERDADE)
     try:
         with pdfplumber.open("arquivo.pdf") as pdf:
             for pagina in pdf.pages:
@@ -97,10 +81,16 @@ for url in urls:
                 for linha in linhas:
                     linha_lower = linha.lower()
 
-                    if any(p in linha_lower for p in palavras_autovistoria):
+                    # 🎯 AUTOVISTORIA / INSPEÇÃO (AGORA INTELIGENTE)
+                    if (
+                        ("condominio" in linha_lower or "condomínio" in linha_lower or "edificio" in linha_lower or "edifício" in linha_lower)
+                        and
+                        ("laudo" in linha_lower or "vistoria" in linha_lower or "autovistoria" in linha_lower or "inspeção" in linha_lower or "exigência" in linha_lower)
+                    ):
                         clientes_autovistoria.append(linha.strip())
 
-                    if any(p in linha_lower for p in palavras_marquise):
+                    # 🎯 MARQUISE (DIRETO)
+                    if "marquise" in linha_lower:
                         clientes_marquise.append(linha.strip())
 
     except Exception as e:
@@ -109,7 +99,7 @@ for url in urls:
 # 📊 RESULTADO FINAL
 
 print("\n==============================")
-print("🏢 CLIENTES - INSPEÇÃO / AUTOVISTORIA")
+print("🏢 CLIENTES - AUTOVISTORIA / INSPEÇÃO")
 print("==============================\n")
 
 for c in clientes_autovistoria:
