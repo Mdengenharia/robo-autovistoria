@@ -19,7 +19,10 @@ for link in soup.find_all("a"):
 if pdf_link and pdf_link.startswith("/"):
     pdf_link = "https://doweb.rio.rj.gov.br" + pdf_link
 
-pdf = requests.get(pdf_link)
+if pdf_link and pdf_link.startswith("http"):
+    pdf = requests.get(pdf_link)
+else:
+    print("Link inválido ou inexistente")
 
 with open("diario.pdf","wb") as f:
     f.write(pdf.content)
